@@ -146,7 +146,7 @@ dist
 # vercel
 .vercel
 
-.idea
+.idea/
 next-env.d.ts
 
 
