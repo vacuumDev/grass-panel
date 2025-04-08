@@ -47,8 +47,27 @@ export default function Dashboard() {
         return acc;
     }, {});
 
+    const aggregatedThreads = servers.reduce((acc, srv) => {
+        Object.entries(srv.data.threadsByCountry || {}).forEach(([country, cnt]) => {
+            acc[country] = (acc[country] || 0) + cnt;
+        });
+        return acc;
+    }, {});
+
+
+    const allCountries = Array.from(new Set([
+        ...Object.keys(aggregatedCountries),
+        ...Object.keys(aggregatedThreads),
+    ]));
+
     // Сортировка стран по убыванию аккаунтов
-    const sortedCountries = Object.entries(aggregatedCountries).sort((a, b) => b[1] - a[1]);
+    const sortedCountries = allCountries
+        .map(country => ({
+            country,
+            accounts: aggregatedCountries[country] || 0,
+            threads: aggregatedThreads[country] || 0,
+        }))
+        .sort((a, b) => b.accounts - a.accounts);
 
     return (
         <Container sx={{ mt: 4 }} maxWidth="2xl">
@@ -196,30 +215,28 @@ export default function Dashboard() {
             {/* Суммарная статистика по странам */}
             <Paper sx={{ p: 2, mt: 4 }}>
                 <Typography variant="h6" gutterBottom>
-                    Суммарная статистика по странам (аккаунты)
+                    Суммарная статистика по странам
                 </Typography>
-                <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                        <Typography variant="subtitle1">
-                            Страна
-                        </Typography>
+                <Grid container spacing={1}>
+                    <Grid item xs={4}>
+                        <Typography variant="subtitle1">Страна</Typography>
                     </Grid>
-                    <Grid item xs={6}>
-                        <Typography variant="subtitle1">
-                            Количество аккаунтов
-                        </Typography>
+                    <Grid item xs={4}>
+                        <Typography variant="subtitle1">Потоки</Typography>
                     </Grid>
-                    {sortedCountries.map(([country, count]) => (
+                    <Grid item xs={4}>
+                        <Typography variant="subtitle1">Аккаунты</Typography>
+                    </Grid>
+                    {sortedCountries.map(({ country, accounts, threads }) => (
                         <React.Fragment key={country}>
-                            <Grid item xs={6}>
-                                <Typography variant="body1">
-                                    {country}
-                                </Typography>
+                            <Grid item xs={4}>
+                                <Typography variant="body1">{country}</Typography>
                             </Grid>
-                            <Grid item xs={6}>
-                                <Typography variant="body1">
-                                    {count}
-                                </Typography>
+                            <Grid item xs={4}>
+                                <Typography variant="body1">{threads}</Typography>
+                            </Grid>
+                            <Grid item xs={4}>
+                                <Typography variant="body1">{accounts}</Typography>
                             </Grid>
                         </React.Fragment>
                     ))}
