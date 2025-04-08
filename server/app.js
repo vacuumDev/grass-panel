@@ -49,17 +49,14 @@ function getServersList() {
         .filter(ip => ip.length > 0);
 }
 
-// Порт, на котором работают целевые серверы (например, с рабочим эндпоинтом /getStatistics)
-const TARGET_PORT = process.env.TARGET_PORT || 3000;
-
 // Роут для получения общей статистики по всем серверам.
-// Для каждого IP из SERVERS делаем запрос к http://IP:TARGET_PORT/getStatistics
+// Для каждого IP из SERVERS делаем запрос к http://IP/getStatistics
 app.get('/dashboard', isAuthenticated, async (req, res) => {
     const serversList = getServersList();
     try {
         const serverRequests = serversList.map(ip => {
             console.log(ip)
-            return axios.get(`http://${ip}:${TARGET_PORT}/getStatistics`, {
+            return axios.get(`http://${ip}/getStatistics`, {
                 headers: {
                     'Authorization': process.env.SERVERS_AUTH_TOKEN
                 }
@@ -83,7 +80,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 app.get('/server/:ip', isAuthenticated, async (req, res) => {
     const ip = req.params.ip;
     try {
-        const response = await axios.get(`http://${ip}:${TARGET_PORT}/getStatistics`, {
+        const response = await axios.get(`http://${ip}/getStatistics`, {
             headers: {
                 'Authorization': process.env.SERVERS_AUTH_TOKEN
             }
