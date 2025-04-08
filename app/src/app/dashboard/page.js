@@ -37,35 +37,44 @@ export default function Dashboard() {
     const totalThreads = servers.reduce((acc, server) => acc + (server.data.threads.total || 0), 0);
     const totalPointsChange = servers.reduce((acc, server) => acc + (server.data.totalChange24h || 0), 0);
 
-    // Агрегация аккаунтов по странам
-    const aggregatedCountries = servers.reduce((acc, server) => {
-        if (server.data.countries) {
-            Object.entries(server.data.countries).forEach(([country, count]) => {
-                acc[country] = (acc[country] || 0) + count;
-            });
-        }
-        return acc;
-    }, {});
 
-    const aggregatedThreads = servers.reduce((acc, srv) => {
-        Object.entries(srv.data.threadsByCountry || {}).forEach(([country, cnt]) => {
+    // Агрегация аккаунтов по странам
+    const aggregatedAccounts = servers.reduce((acc, srv) => {
+        Object.entries(srv.data.countries).forEach(([country, cnt]) => {
             acc[country] = (acc[country] || 0) + cnt;
         });
         return acc;
     }, {});
 
+    // Агрегация потоков по странам: working и total
+    const aggregatedThreadsWorking = servers.reduce((acc, srv) => {
+        Object.entries(srv.data.threadsByCountry).forEach(([country, stats]) => {
+            acc[country] = (acc[country] || 0) + stats.working;
+        });
+        return acc;
+    }, {});
 
+    const aggregatedThreadsTotal = servers.reduce((acc, srv) => {
+        Object.entries(srv.data.threadsByCountry).forEach(([country, stats]) => {
+            acc[country] = (acc[country] || 0) + stats.total;
+        });
+        return acc;
+    }, {});
+
+    // Собираем единый список стран
     const allCountries = Array.from(new Set([
-        ...Object.keys(aggregatedCountries),
-        ...Object.keys(aggregatedThreads),
+        ...Object.keys(aggregatedAccounts),
+        ...Object.keys(aggregatedThreadsWorking),
+        ...Object.keys(aggregatedThreadsTotal),
     ]));
 
-    // Сортировка стран по убыванию аккаунтов
+    // Формируем и сортируем по убыванию числа аккаунтов
     const sortedCountries = allCountries
         .map(country => ({
             country,
-            accounts: aggregatedCountries[country] || 0,
-            threads: aggregatedThreads[country] || 0,
+            accounts: aggregatedAccounts[country] || 0,
+            threadsWorking: aggregatedThreadsWorking[country] || 0,
+            threadsTotal: aggregatedThreadsTotal[country] || 0,
         }))
         .sort((a, b) => b.accounts - a.accounts);
 
@@ -227,13 +236,13 @@ export default function Dashboard() {
                     <Grid item xs={4}>
                         <Typography variant="subtitle1">Аккаунты</Typography>
                     </Grid>
-                    {sortedCountries.map(({ country, accounts, threads }) => (
+                    {sortedCountries.map(({ country, accounts, threadsWorking, threadsTotal }) => (
                         <React.Fragment key={country}>
                             <Grid item xs={4}>
                                 <Typography variant="body1">{country}</Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant="body1">{threads}</Typography>
+                                <Typography variant="body1">{threadsWorking}/{threadsTotal}</Typography>
                             </Grid>
                             <Grid item xs={4}>
                                 <Typography variant="body1">{accounts}</Typography>
