@@ -10,17 +10,17 @@ export default function Dashboard() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await fetch('http://localhost:8080/dashboard', { credentials: 'include' });
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, { credentials: 'include' });
             if (res.ok) {
                 const data = await res.json();
-                setServers(data.servers);
+                setServers(data); // API возвращает массив серверов
             } else {
                 router.push('/');
             }
             setLoading(false);
         };
         fetchData();
-    }, []);
+    }, [router]);
 
     if (loading) {
         return (
@@ -30,64 +30,201 @@ export default function Dashboard() {
         );
     }
 
+    // Общие итоги
+    const totalAccounts = servers.reduce((acc, server) => acc + (server.data.totalAccounts || 0), 0);
+    const totalPoints = servers.reduce((acc, server) => acc + (server.data.totalPoints || 0), 0);
+    const workingThreads = servers.reduce((acc, server) => acc + (server.data.threads.working || 0), 0);
+    const totalThreads = servers.reduce((acc, server) => acc + (server.data.threads.total || 0), 0);
+    const totalPointsChange = servers.reduce((acc, server) => acc + (server.data.totalChange24h || 0), 0);
+
+    // Агрегация аккаунтов по странам
+    const aggregatedCountries = servers.reduce((acc, server) => {
+        if (server.data.countries) {
+            Object.entries(server.data.countries).forEach(([country, count]) => {
+                acc[country] = (acc[country] || 0) + count;
+            });
+        }
+        return acc;
+    }, {});
+
+    // Сортировка стран по убыванию аккаунтов
+    const sortedCountries = Object.entries(aggregatedCountries).sort((a, b) => b[1] - a[1]);
+
     return (
-        <Container sx={{ mt: 4 }} maxWidth={false}>
+        <Container sx={{ mt: 4 }} maxWidth="2xl">
             <Typography variant="h4" gutterBottom>
                 Dashboard
             </Typography>
             <Typography variant="h6" gutterBottom>
                 Общая статистика по всем серверам
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {servers && servers.map((server) => (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {servers && servers.map((server, index) => (
                     <Paper
-                        key={server.id}
+                        key={index}
                         sx={{
                             p: 2,
                             cursor: 'pointer',
                             transition: 'box-shadow 0.3s',
                             '&:hover': { boxShadow: 6 },
                         }}
-                        onClick={() => router.push(`/dashboard/${server.id}`)}
+                        onClick={() => router.push(`/dashboard/${server.ip}`)}
                     >
-                        <Grid container alignItems="center"
-                              sx={{
-                                  display: 'flex',
-                                  justifyContent: 'space-around',
-                              }}>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">🖥 server-{server.id}</Typography>
+                        <Grid container spacing={1}>
+                            <Grid item xs={2}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    IP
+                                </Typography>
                             </Grid>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">{server.username}</Typography>
-                            </Grid>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">{server.threads} threads</Typography>
-                            </Grid>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">{server.last24}/24hr</Typography>
-                            </Grid>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">{server.points} points</Typography>
-                            </Grid>
-                            <Grid item xs={1}>
-                                <Typography variant="subtitle1">
-                                    {server.status === 'Running' ? '🟢 Running' : '🔴 ' + server.status}
+                            <Grid item xs={2}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Status
                                 </Typography>
                             </Grid>
                             <Grid item xs={1}>
-                                <Typography variant="subtitle1">{server.ip}</Typography>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Points
+                                </Typography>
                             </Grid>
                             <Grid item xs={1}>
-                                <Typography variant="subtitle1">86% CPU</Typography>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    24h Change
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Threads
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    CPU
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Memory
+                                </Typography>
+                            </Grid>
+
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.ip}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.data.status === 'working' ? '🟢 Running' : '🔴 Stopped'}
+                                </Typography>
                             </Grid>
                             <Grid item xs={1}>
-                                <Typography variant="subtitle1">17.8G</Typography>
+                                <Typography variant="body1">
+                                    {server.data.totalPoints}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={1}>
+                                <Typography variant="body1">
+                                    +{server.data.totalChange24h}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.data.threads.working}/{server.data.threads.total}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.data.cpu.averageUsage}% ({server.data.cpu.numCores} cores)
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.data.memory.used}GB / {server.data.memory.total}GB ({server.data.memory.usedPercentage}%)
+                                </Typography>
                             </Grid>
                         </Grid>
                     </Paper>
                 ))}
             </Box>
+
+            {/* Общие итоговые данные */}
+            <Paper sx={{ p: 2, mt: 4 }}>
+                <Grid container spacing={2}>
+                    <Grid item xs={3}>
+                        <Typography variant="subtitle1">
+                            Total Accounts
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="subtitle1">
+                            Total Points
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="subtitle1">
+                            Total Threads
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="subtitle1">
+                            Points 24h Change
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="body1">
+                            {totalAccounts}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="body1">
+                            {totalPoints}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="body1">
+                            {workingThreads}/{totalThreads}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography variant="body1">
+                            {totalPointsChange}
+                        </Typography>
+                    </Grid>
+                </Grid>
+            </Paper>
+
+            {/* Суммарная статистика по странам */}
+            <Paper sx={{ p: 2, mt: 4 }}>
+                <Typography variant="h6" gutterBottom>
+                    Суммарная статистика по странам (аккаунты)
+                </Typography>
+                <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                        <Typography variant="subtitle1">
+                            Страна
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                        <Typography variant="subtitle1">
+                            Количество аккаунтов
+                        </Typography>
+                    </Grid>
+                    {sortedCountries.map(([country, count]) => (
+                        <React.Fragment key={country}>
+                            <Grid item xs={6}>
+                                <Typography variant="body1">
+                                    {country}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body1">
+                                    {count}
+                                </Typography>
+                            </Grid>
+                        </React.Fragment>
+                    ))}
+                </Grid>
+            </Paper>
         </Container>
     );
 }
