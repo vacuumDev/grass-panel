@@ -70,7 +70,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                     error: error.message
                 }));
         });
-        const serversData = await Promise.all(serverRequests);
+        const serversData = (await Promise.all(serverRequests)).filter(v => typeof v.data !== 'undefined');
         res.json(serversData);
     } catch (error) {
         res.status(500).json({ error: "Ошибка при получении данных с серверов" });
