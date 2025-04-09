@@ -10,14 +10,19 @@ export default function Dashboard() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, { credentials: 'include' });
+            let res = null;
+            try {
+                res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, { credentials: 'include' });
+            } catch (err) {
+                router.push('/')
+            }
             if (res.ok) {
                 const data = await res.json();
+                setLoading(false);
                 setServers(data); // API возвращает массив серверов
             } else {
                 router.push('/');
             }
-            setLoading(false);
         };
         fetchData();
     }, [router]);
