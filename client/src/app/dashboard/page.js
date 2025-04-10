@@ -7,6 +7,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [servers, setServers] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [errorServers, setErrorServers] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -18,14 +19,15 @@ export default function Dashboard() {
             }
             if (res.ok) {
                 const data = await res.json();
+                setServers(data.filter(v => typeof v.data !== 'undefined'));
+                setErrorServers(data.filter(v => typeof v.error !== 'undefined'))
                 setLoading(false);
-                setServers(data); // API возвращает массив серверов
             } else {
                 router.push('/');
             }
         };
         fetchData();
-    }, [router]);
+    }, []);
 
     if (loading) {
         return (
@@ -173,6 +175,32 @@ export default function Dashboard() {
                             <Grid item xs={2}>
                                 <Typography variant="body1">
                                     {server.data.memory.used}GB / {server.data.memory.total}GB ({server.data.memory.usedPercentage}%)
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                ))}
+                Сервера с ошибками
+                {errorServers && errorServers.map((server, index) => (
+                    <Paper
+                        key={index}
+                        sx={{
+                            p: 2,
+                            cursor: 'pointer',
+                            transition: 'box-shadow 0.3s',
+                            '&:hover': { boxShadow: 6 },
+                        }}
+                        onClick={() => router.push(`/dashboard`)}
+                    >
+                        <Grid container spacing={1}>
+                            <Grid item xs={2}>
+                                <Typography variant="body1">
+                                    {server.ip}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={8}>
+                                <Typography variant="body1">
+                                    {server.error}
                                 </Typography>
                             </Grid>
                         </Grid>

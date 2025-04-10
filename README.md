@@ -39,10 +39,10 @@
 ## Фронтенд
 1. Установка зависимостей:
    ```bash
-   cd app
+   cd client
    npm install
    ```
-2. Создайте .env.local
+2. Создайте .env
    ```dotenv
     NEXT_PUBLIC_API_URL=http://127.0.0.1:8080 # базовый урл сервера
    ```

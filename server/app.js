@@ -57,6 +57,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         const serverRequests = serversList.map(ip => {
             console.log(ip)
             return axios.get(`http://${ip}/getStatistics`, {
+                timeout: 5_000,
                 headers: {
                     'Authorization': process.env.SERVERS_AUTH_TOKEN
                 }
@@ -70,8 +71,9 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
                     error: error.message
                 }));
         });
-        const serversData = (await Promise.all(serverRequests)).filter(v => typeof v.data !== 'undefined');
-        res.json(serversData);
+        const responses = await Promise.all(serverRequests);
+        console.log(responses)
+        res.json(responses);
     } catch (error) {
         res.status(500).json({ error: "Ошибка при получении данных с серверов" });
     }
